@@ -11,14 +11,22 @@ import {
   Table,
   Wand2,
   Database,
+  Code2,
+  FileCode,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ToggleTheme } from "./ui/theme-toggle";
 
 interface SidebarProps {
   loading: boolean;
   stats?: { migrations: number; models: number };
-  onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onExport: () => void;
+  onBuildGraph: (files: any[]) => void;
+  onExport: (format: string) => void;
   onOpenCLI: () => void;
   nodes?: any[];
   onNodeSelect?: (nodeId: string) => void;
@@ -27,13 +35,46 @@ interface SidebarProps {
 export const Sidebar = ({
   loading,
   stats = { migrations: 0, models: 0 },
-  onFileSelect,
+  onBuildGraph,
   onExport,
   onOpenCLI,
   nodes = [],
   onNodeSelect,
 }: SidebarProps) => {
   const [search, setSearch] = useState("");
+  const [processing, setProcessing] = useState(false);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.length) return;
+    setProcessing(true);
+
+    const files = Array.from(e.target.files);
+    const processedFiles = await Promise.all(
+      files.map((file) => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const content = event.target?.result as string;
+            const path = file.webkitRelativePath || file.name;
+            let type = "other";
+            if (path.includes("database/migrations")) type = "migration";
+            if (path.includes("app/Models")) type = "model";
+
+            resolve({
+              name: file.name,
+              path,
+              content,
+              type,
+            });
+          };
+          reader.readAsText(file);
+        });
+      })
+    );
+
+    onBuildGraph(processedFiles);
+    setProcessing(false);
+  };
 
   const filteredNodes = useMemo(() => {
     if (!nodes) return [];
@@ -62,15 +103,15 @@ export const Sidebar = ({
             directory=""
             multiple
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-            onChange={onFileSelect}
+            onChange={handleFileSelect}
           />
           <Button
             variant="outline"
             className="w-full justify-start h-10"
-            disabled={loading}
+            disabled={loading || processing}
           >
             <FolderOpen className="mr-2 h-4 w-4 text-primary" />
-            {loading ? "Processing..." : "Import Project"}
+            {loading || processing ? "Processing..." : "Import Project"}
           </Button>
         </div>
       </div>
@@ -79,14 +120,32 @@ export const Sidebar = ({
         <div className="space-y-6">
           {/* Actions */}
           <div className="grid grid-cols-2 gap-2">
-            <Button
-              className="w-full justify-start h-9 px-2 text-xs"
-              variant="secondary"
-              onClick={onExport}
-              disabled={stats.models === 0 && stats.migrations === 0}
-            >
-              <Download className="mr-2 h-3.5 w-3.5" /> Export
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  className="w-full justify-start h-9 px-2 text-xs"
+                  variant="secondary"
+                  disabled={stats.models === 0 && stats.migrations === 0}
+                >
+                  <Download className="mr-2 h-3.5 w-3.5" /> Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuItem onClick={() => onExport("laravel")}>
+                  <FolderOpen className="mr-2 h-4 w-4" /> Laravel Project
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onExport("sql")}>
+                  <Database className="mr-2 h-4 w-4" /> SQL (MySQL)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onExport("prisma")}>
+                  <Code2 className="mr-2 h-4 w-4" /> Prisma Schema
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onExport("django")}>
+                  <FileCode className="mr-2 h-4 w-4" /> Django Models
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button
               className="w-full justify-start h-9 px-2 text-xs"
               variant="secondary"
