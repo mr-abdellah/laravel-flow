@@ -7,6 +7,7 @@ import ReactFlow, {
   MiniMap,
   useNodesState,
   useEdgesState,
+  ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
 
@@ -56,6 +57,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Sheet } from "@/components/ui/sheet";
+import { SupabaseEditor } from "@/components/SupabaseEditor";
 
 const nodeTypes = { entity: EntityNode };
 
@@ -102,10 +105,12 @@ export default function ArchitectPage() {
   // --- Architect State ---
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const [projectStats, setProjectStats] = useState({
     migrations: 0,
     models: 0,
   });
+  const [editingNode, setEditingNode] = useState<any>(null);
 
   // --- Chat State ---
   const [selectedChatId, setSelectedChatId] = useState<number | null>(null);
@@ -152,6 +157,38 @@ export default function ArchitectPage() {
   });
 
   // --- AI Graph Update Logic ---
+  const onNodeEdit = useCallback((data: any) => {
+    setEditingNode(data);
+  }, []);
+
+  const handleSaveNode = useCallback(
+    (updatedColumns: any[]) => {
+      if (!editingNode) return;
+
+      setNodes((nds) =>
+        nds.map((node) => {
+          if (node.id === editingNode.table.name) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                table: {
+                  ...node.data.table,
+                  columns: updatedColumns,
+                },
+                onEdit: onNodeEdit, // Ensure onEdit is preserved
+              },
+            };
+          }
+          return node;
+        })
+      );
+      setEditingNode(null);
+    },
+    [editingNode, setNodes, onNodeEdit]
+  );
+
+  // --- AI Graph Update Logic ---
   const updateGraphFromAI = useCallback(
     (schema: any) => {
       if (!schema.tables) return;
@@ -171,23 +208,94 @@ export default function ArchitectPage() {
               isFk: c.name.endsWith("_id"),
             })),
           },
+          onEdit: onNodeEdit,
         },
       }));
 
       const newEdges: any[] = [];
+      const existingEdges = new Set<string>();
+      const linkedPairs = new Set<string>(); // "tableA:tableB" (sorted)
+
+      // Create a lookup map of table names for easier searching
+      const tableNameMap = new Map<string, string>();
+      schema.tables.forEach((table: any) => {
+        const tableName = table.name.toLowerCase();
+        tableNameMap.set(tableName, table.name);
+        // Also add singular version
+        const singular = singularize(tableName);
+        if (!tableNameMap.has(singular)) {
+          tableNameMap.set(singular, table.name);
+        }
+      });
+
+      // 1. Infer relations from foreign keys (PRIORITY)
+      schema.tables.forEach((table: any) => {
+        table.columns.forEach((col: any) => {
+          if (col.name.endsWith("_id") && col.name !== "id") {
+            const fkBase = col.name.replace("_id", "").toLowerCase();
+            const source = table.name;
+
+            // Try to find the target table by checking:
+            // 1. Exact plural match
+            // 2. Exact singular match
+            // 3. Pluralized version of the FK base
+            let target = tableNameMap.get(fkBase);
+            if (!target) {
+              target = tableNameMap.get(pluralize(fkBase));
+            }
+
+            if (target && source !== target) {
+              const edgeId = `${source}-${target}-inferred`;
+              newEdges.push({
+                id: edgeId,
+                source,
+                target,
+                sourceHandle: `source-${col.name}`,
+                targetHandle: `target-id`,
+                label: "belongsTo",
+                type: "smoothstep",
+                animated: true,
+                style: { strokeDasharray: "5,5" },
+              });
+
+              existingEdges.add(edgeId);
+              const pair = [source, target].sort().join(":");
+              linkedPairs.add(pair);
+            }
+          }
+        });
+      });
+
+      // 2. Add AI-provided relations (Only if not already linked by FK)
       if (schema.relations) {
         schema.relations.forEach((rel: any) => {
-          const source = pluralize(rel.fromModel.toLowerCase());
-          const target = pluralize(rel.toModel.toLowerCase());
+          const sourceLower = rel.fromModel.toLowerCase();
+          const targetLower = rel.toModel.toLowerCase();
 
-          newEdges.push({
-            id: `${source}-${target}-${rel.type}`,
-            source,
-            target,
-            label: rel.type,
-            type: "smoothstep",
-            animated: true,
-          });
+          const source =
+            tableNameMap.get(pluralize(sourceLower)) ||
+            tableNameMap.get(sourceLower);
+          const target =
+            tableNameMap.get(pluralize(targetLower)) ||
+            tableNameMap.get(targetLower);
+
+          if (source && target) {
+            const edgeId = `${source}-${target}-${rel.type}`;
+            const pair = [source, target].sort().join(":");
+
+            if (!linkedPairs.has(pair) && !existingEdges.has(edgeId)) {
+              newEdges.push({
+                id: edgeId,
+                source,
+                target,
+                label: rel.type,
+                type: "smoothstep",
+                animated: true,
+              });
+              existingEdges.add(edgeId);
+              linkedPairs.add(pair);
+            }
+          }
         });
       }
 
@@ -405,6 +513,22 @@ export default function ArchitectPage() {
     URL.revokeObjectURL(url);
   };
 
+  const onNodeSelect = useCallback(
+    (nodeId: string) => {
+      if (rfInstance) {
+        const node = nodes.find((n) => n.id === nodeId);
+        if (node) {
+          rfInstance.setCenter(
+            node.position.x + 150, // Center with some offset
+            node.position.y + 100,
+            { zoom: 1, duration: 800 }
+          );
+        }
+      }
+    },
+    [rfInstance, nodes]
+  );
+
   if (isUserLoading || !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -424,6 +548,7 @@ export default function ArchitectPage() {
           onOpenCLI={() => {}}
           nodes={nodes}
           stats={projectStats}
+          onNodeSelect={onNodeSelect}
         />
       </div>
 
@@ -437,6 +562,7 @@ export default function ArchitectPage() {
           nodeTypes={nodeTypes}
           fitView
           className="bg-muted/10"
+          onInit={setRfInstance}
         >
           <Background gap={16} size={1} />
           <Controls className="bg-card border-border shadow-sm" />
@@ -719,6 +845,15 @@ export default function ArchitectPage() {
           </div>
         )}
       </div>
+
+      <Sheet
+        open={!!editingNode}
+        onOpenChange={(open) => !open && setEditingNode(null)}
+      >
+        {editingNode && (
+          <SupabaseEditor data={editingNode} onSave={handleSaveNode} />
+        )}
+      </Sheet>
     </div>
   );
 }

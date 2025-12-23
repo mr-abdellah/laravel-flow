@@ -57,29 +57,19 @@ const EntityNode = ({ data, selected }: NodeProps) => {
               position={Position.Left}
               id={`target-${col.name}`}
               className="w-2 h-2 !bg-muted-foreground/30 opacity-0 group-hover/row:opacity-100 transition-opacity"
+              style={{ left: -4 }}
             />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-hidden">
               {col.isPk ? (
-                <Key size={10} className="text-yellow-500 fill-yellow-500/20" />
+                <Key className="w-3 h-3 text-yellow-500 shrink-0" />
+              ) : col.name.endsWith("_id") ? (
+                <Hash className="w-3 h-3 text-green-500 shrink-0" />
               ) : (
-                <Hash
-                  size={10}
-                  className={cn(
-                    "text-muted-foreground",
-                    col.isFk && "text-primary"
-                  )}
-                />
+                <Hash className="w-3 h-3 text-muted-foreground/50 shrink-0" />
               )}
-              <span
-                className={cn(
-                  "text-[11px] font-medium",
-                  col.isPk ? "text-foreground" : "text-muted-foreground"
-                )}
-              >
-                {col.name}
-              </span>
+              <span className="truncate font-mono text-[10px]">{col.name}</span>
             </div>
-            <span className="text-[9px] font-mono text-muted-foreground/60 uppercase group-hover/row:text-muted-foreground">
+            <span className="text-[9px] text-muted-foreground font-mono ml-4 uppercase shrink-0">
               {col.type}
             </span>
             <Handle
@@ -87,6 +77,7 @@ const EntityNode = ({ data, selected }: NodeProps) => {
               position={Position.Right}
               id={`source-${col.name}`}
               className="w-2 h-2 !bg-muted-foreground/30 opacity-0 group-hover/row:opacity-100 transition-opacity"
+              style={{ right: -4 }}
             />
           </div>
         ))}
