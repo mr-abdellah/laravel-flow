@@ -3,11 +3,12 @@ import { AISchema } from "./generators";
 export const generateSchemaWithAI = async (
   prompt: string,
   apiKey: string,
+  currentSchema?: string,
   model: string = "llama-3.3-70b-versatile"
 ): Promise<AISchema> => {
   const systemPrompt = `
 You are a Laravel Database Architect. 
-Your goal is to generate a database schema based on the user's description.
+Your goal is to generate or modify a database schema based on the user's description.
 You MUST return ONLY a valid JSON object. Do not include any markdown formatting, explanations, or code blocks.
 The JSON must follow this exact structure:
 
@@ -36,34 +37,42 @@ Rules:
 3. Infer relationships based on the description.
 4. "fromModel" and "toModel" should be PascalCase (e.g., "User", "Post").
 5. "name" in tables should be snake_case plural (e.g., "users", "blog_posts").
+6. If Current Schema is provided, use it as a base and apply the requested changes. Return the FULL schema including unmodified tables if they are relevant, or just the new/modified ones. Ideally return the full consistent schema for the requested domain.
 `;
 
+  const userContent = currentSchema
+    ? `Current Schema Context:\n${currentSchema}\n\nRequest: ${prompt}`
+    : prompt;
+
   try {
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.1, // Low temperature for consistent JSON
-        response_format: { type: "json_object" }, // Force JSON mode if supported
-      }),
-    });
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userContent },
+          ],
+          temperature: 0.1, // Low temperature for consistent JSON
+          response_format: { type: "json_object" }, // Force JSON mode if supported
+        }),
+      }
+    );
 
     if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || "Failed to generate schema");
+      const error = await response.json();
+      throw new Error(error.error?.message || "Failed to generate schema");
     }
 
     const data = await response.json();
     const content = data.choices[0].message.content;
-    
+
     return JSON.parse(content);
   } catch (error) {
     console.error("AI Generation Error:", error);

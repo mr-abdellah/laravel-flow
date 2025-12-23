@@ -37,9 +37,9 @@ export default function ArchitectPage() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [rawFiles, setRawFiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [rfInstance, setRfInstance] = useState<any>(null);
 
   // Modal Control
-  const [showAI, setShowAI] = useState(false);
   const [showCLI, setShowCLI] = useState(false);
 
   // Sheet Control
@@ -194,14 +194,26 @@ export default function ArchitectPage() {
     // Ideally we should check for duplicates.
 
     setRawFiles((prev) => {
-      const merged = [...prev, ...newFiles];
-      // Remove duplicates by path
-      const unique = merged.filter(
-        (v, i, a) => a.findIndex((t) => t.path === v.path) === i
-      );
+      const fileMap = new Map();
+      prev.forEach((f) => fileMap.set(f.path, f));
+      newFiles.forEach((f) => fileMap.set(f.path, f)); // Overwrite existing
+
+      const unique = Array.from(fileMap.values());
       buildGraph(unique);
       return unique;
     });
+  };
+
+  const handleNodeSelect = (nodeId: string) => {
+    if (rfInstance) {
+      const node = nodes.find((n) => n.id === nodeId);
+      if (node) {
+        rfInstance.setCenter(node.position.x, node.position.y, {
+          zoom: 1,
+          duration: 800,
+        });
+      }
+    }
   };
 
   return (
@@ -211,8 +223,9 @@ export default function ArchitectPage() {
         stats={stats}
         onFileSelect={handleUpload}
         onExport={handleExport}
-        onOpenAI={() => setShowAI(true)}
         onOpenCLI={() => setShowCLI(true)}
+        nodes={nodes}
+        onNodeSelect={handleNodeSelect}
       />
 
       <main className="flex-1 relative">
@@ -223,6 +236,7 @@ export default function ArchitectPage() {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           className="bg-muted/10"
+          onInit={setRfInstance}
         >
           <Background color="var(--color-bg)" gap={24} />
           <Controls className="bg-background border-border fill-foreground" />
@@ -242,9 +256,10 @@ export default function ArchitectPage() {
         </Sheet>
 
         <AIAssistant
-          open={showAI}
-          onOpenChange={setShowAI}
+          open={true}
+          onOpenChange={() => {}}
           onGenerate={handleAIGenerated}
+          nodes={nodes}
         />
 
         <CLIViewer open={showCLI} onOpenChange={setShowCLI} files={rawFiles} />
