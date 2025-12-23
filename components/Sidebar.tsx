@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FolderOpen, Download, Layers } from "lucide-react";
+import { FolderOpen, Download, Layers, Wand2, Terminal } from "lucide-react";
 import { ToggleTheme } from "./ui/theme-toggle";
 
 interface SidebarProps {
@@ -9,6 +9,8 @@ interface SidebarProps {
   stats?: { migrations: number; models: number }; // Made optional
   onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onExport: () => void;
+  onOpenAI: () => void;
+  onOpenCLI: () => void;
 }
 
 export const Sidebar = ({
@@ -16,6 +18,8 @@ export const Sidebar = ({
   stats = { migrations: 0, models: 0 }, // Default value prevents crash
   onFileSelect,
   onExport,
+  onOpenAI,
+  onOpenCLI,
 }: SidebarProps) => {
   return (
     <div className="w-[280px] bg-card border-r border-border flex flex-col h-full shadow-sm z-20">
@@ -30,6 +34,13 @@ export const Sidebar = ({
 
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
+          <Button
+            className="w-full justify-start h-11 bg-primary text-primary-foreground hover:bg-primary/90 border-0"
+            onClick={onOpenAI}
+          >
+            <Wand2 className="mr-2 h-4 w-4" /> AI Architect
+          </Button>
+
           <div className="relative">
             <input
               type="file"
@@ -50,14 +61,24 @@ export const Sidebar = ({
             </Button>
           </div>
 
-          <Button
-            className="w-full justify-start h-11"
-            variant="secondary"
-            onClick={onExport}
-            disabled={stats.models === 0 && stats.migrations === 0}
-          >
-            <Download className="mr-2 h-4 w-4" /> Export Data
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              className="w-full justify-start h-11 px-2"
+              variant="secondary"
+              onClick={onExport}
+              disabled={stats.models === 0 && stats.migrations === 0}
+            >
+              <Download className="mr-2 h-4 w-4" /> Export
+            </Button>
+            <Button
+              className="w-full justify-start h-11 px-2"
+              variant="secondary"
+              onClick={onOpenCLI}
+              disabled={stats.models === 0 && stats.migrations === 0}
+            >
+              <Terminal className="mr-2 h-4 w-4" /> CLI
+            </Button>
+          </div>
 
           <div className="pt-4 space-y-2">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">

@@ -13,6 +13,8 @@ import "reactflow/dist/style.css";
 
 import { Sidebar } from "@/components/Sidebar";
 import { SupabaseEditor } from "@/components/SupabaseEditor";
+import { AIAssistant } from "@/components/AIAssistant";
+import { CLIViewer } from "@/components/CLIViewer";
 import EntityNode from "@/components/EntityNode";
 import { Sheet } from "@/components/ui/sheet";
 
@@ -25,6 +27,8 @@ import {
 import { processDirectoryUpload } from "@/lib/file-system";
 import { Column } from "@/types";
 import { getLayoutedElements } from "@/lib/layout";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
 const nodeTypes = { entity: EntityNode };
 
@@ -33,6 +37,10 @@ export default function ArchitectPage() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [rawFiles, setRawFiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Modal Control
+  const [showAI, setShowAI] = useState(false);
+  const [showCLI, setShowCLI] = useState(false);
 
   // Sheet Control
   const [activeNodeData, setActiveNodeData] = useState<any>(null);
@@ -156,6 +164,22 @@ export default function ArchitectPage() {
     setActiveNodeData(null);
   };
 
+  const handleExport = async () => {
+    const zip = new JSZip();
+
+    rawFiles.forEach((file) => {
+      // Create folder structure based on file path
+      // Removing the leading slash if present to avoid empty root folder issues
+      const relativePath = file.path.startsWith("/")
+        ? file.path.slice(1)
+        : file.path;
+      zip.file(relativePath, file.content);
+    });
+
+    const content = await zip.generateAsync({ type: "blob" });
+    saveAs(content, "laravel-schema-export.zip");
+  };
+
   const stats = useMemo(
     () => ({
       migrations: rawFiles.filter((f) => f.type === "migration").length,
@@ -164,13 +188,31 @@ export default function ArchitectPage() {
     [rawFiles]
   );
 
+  const handleAIGenerated = (newFiles: any[]) => {
+    // Merge with existing files or replace? User asked for "Start from scratch" OR "Add in existing".
+    // For now, let's just append to existing files to support both use cases.
+    // Ideally we should check for duplicates.
+
+    setRawFiles((prev) => {
+      const merged = [...prev, ...newFiles];
+      // Remove duplicates by path
+      const unique = merged.filter(
+        (v, i, a) => a.findIndex((t) => t.path === v.path) === i
+      );
+      buildGraph(unique);
+      return unique;
+    });
+  };
+
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden font-sans">
       <Sidebar
         loading={loading}
         stats={stats}
         onFileSelect={handleUpload}
-        onExport={() => {}}
+        onExport={handleExport}
+        onOpenAI={() => setShowAI(true)}
+        onOpenCLI={() => setShowCLI(true)}
       />
 
       <main className="flex-1 relative">
@@ -198,6 +240,14 @@ export default function ArchitectPage() {
             <SupabaseEditor data={activeNodeData} onSave={handleSave} />
           )}
         </Sheet>
+
+        <AIAssistant
+          open={showAI}
+          onOpenChange={setShowAI}
+          onGenerate={handleAIGenerated}
+        />
+
+        <CLIViewer open={showCLI} onOpenChange={setShowCLI} files={rawFiles} />
       </main>
     </div>
   );
