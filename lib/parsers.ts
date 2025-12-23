@@ -90,11 +90,17 @@ const parseColumns = (body: string): Column[] => {
   const colRegex = /\$table->(\w+)\(['"]([\w_]+)['"]\)/g;
   let m;
   while ((m = colRegex.exec(body)) !== null) {
+    const matchEndIndex = m.index + m[0].length;
+    const remaining = body.slice(matchEndIndex);
+    const nextSemi = remaining.indexOf(";");
+    const chain = nextSemi !== -1 ? remaining.slice(0, nextSemi) : "";
+
     columns.push({
       name: m[2],
       type: m[1],
       isPk: false,
       isFk: m[2].endsWith("_id"),
+      nullable: chain.includes("->nullable()"),
     });
   }
   if (body.includes("$table->id()"))
@@ -103,6 +109,7 @@ const parseColumns = (body: string): Column[] => {
       type: "bigIncrements",
       isPk: true,
       isFk: false,
+      nullable: false,
     });
   return columns;
 };
@@ -145,4 +152,40 @@ export const generateEdgeId = (
   index: number
 ) => {
   return `e-${source}-${target}-${column}-${index}`;
+};
+
+export const generateMigrationContent = (
+  originalContent: string,
+  tableName: string,
+  newColumns: Column[]
+): string => {
+  // Regex to find the Schema::create block for this table
+  const createRegex = new RegExp(
+    `(Schema::create\\s*\\(['"]${tableName}['"],\\s*function\\s*\\(Blueprint\\s*\\$table\\)\\s*\\{)([\\s\\S]*?)(\\}\\);)`,
+    "g"
+  );
+
+  return originalContent.replace(createRegex, (match, start, body, end) => {
+    // Generate new column code
+    const columnLines = newColumns
+      .map((col) => {
+        if (col.type === "id" && col.name === "id") {
+          return `            $table->id();`;
+        }
+
+        // For now, handle simple types.
+        // Ideally we would map every type but this covers the basics.
+        let line = `            $table->${col.type}('${col.name}')`;
+
+        if (col.nullable) {
+          line += "->nullable()";
+        }
+
+        line += ";";
+        return line;
+      })
+      .join("\n");
+
+    return `${start}\n${columnLines}\n            $table->timestamps();\n        ${end}`;
+  });
 };

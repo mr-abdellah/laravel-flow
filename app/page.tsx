@@ -16,8 +16,15 @@ import { SupabaseEditor } from "@/components/SupabaseEditor";
 import EntityNode from "@/components/EntityNode";
 import { Sheet } from "@/components/ui/sheet";
 
-import { parseProjectData, inferTargetTable } from "@/lib/parsers";
+import {
+  parseProjectData,
+  inferTargetTable,
+  generateEdgeId,
+  generateMigrationContent,
+} from "@/lib/parsers";
 import { processDirectoryUpload } from "@/lib/file-system";
+import { Column } from "@/types";
+import { getLayoutedElements } from "@/lib/layout";
 
 const nodeTypes = { entity: EntityNode };
 
@@ -41,7 +48,7 @@ export default function ArchitectPage() {
 
       const allTableNames = Object.keys(tableStates);
 
-      const tempNodes = allTableNames.map((tName, idx) => {
+      const tempNodes = allTableNames.map((tName) => {
         const table = tableStates[tName];
         const model = models.find((m) => m.table === tName);
 
@@ -53,7 +60,7 @@ export default function ArchitectPage() {
         return {
           id: tName,
           type: "entity",
-          position: { x: (idx * 300) % 1200, y: Math.floor(idx / 4) * 450 },
+          position: { x: 0, y: 0 }, // Position will be set by layout
           data: {
             table,
             model,
@@ -73,11 +80,12 @@ export default function ArchitectPage() {
       allTableNames.forEach((tName) => {
         tableStates[tName].columns
           .filter((c) => c.isFk)
-          .forEach((col) => {
+          .forEach((col, index) => {
             const target = inferTargetTable(col.name, allTableNames);
             if (target && target !== tName) {
               tempEdges.push({
-                id: `e-${tName}-${target}-${col.name}`,
+                // id: `e-${tName}-${target}-${col.name}`,
+                id: generateEdgeId(tName, target, col.name, index),
                 source: tName,
                 target: target,
                 type: "smoothstep",
@@ -100,8 +108,11 @@ export default function ArchitectPage() {
           });
       });
 
-      setNodes(tempNodes);
-      setEdges(tempEdges);
+      const { nodes: layoutedNodes, edges: layoutedEdges } =
+        getLayoutedElements(tempNodes, tempEdges);
+
+      setNodes(layoutedNodes);
+      setEdges(layoutedEdges);
     },
     [setNodes, setEdges]
   );
@@ -118,14 +129,25 @@ export default function ArchitectPage() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = (newColumns?: Column[]) => {
     if (!activeNodeData) return;
+
+    let updatedMigCode = migCode;
+
+    if (newColumns) {
+      updatedMigCode = generateMigrationContent(
+        migCode,
+        activeNodeData.table.name,
+        newColumns
+      );
+      setMigCode(updatedMigCode);
+    }
 
     const updatedFiles = rawFiles.map((f) => {
       if (f.path === activeNodeData.modelFile?.path)
         return { ...f, content: modelCode };
       if (f.path === activeNodeData.migrationFiles?.[0]?.path)
-        return { ...f, content: migCode };
+        return { ...f, content: updatedMigCode };
       return f;
     });
 
@@ -174,14 +196,7 @@ export default function ArchitectPage() {
           onOpenChange={() => setActiveNodeData(null)}
         >
           {activeNodeData && (
-            <SupabaseEditor
-              data={activeNodeData}
-              modelCode={modelCode}
-              setModelCode={setModelCode}
-              migCode={migCode}
-              setMigCode={setMigCode}
-              onSave={handleSave}
-            />
+            <SupabaseEditor data={activeNodeData} onSave={handleSave} />
           )}
         </Sheet>
       </main>

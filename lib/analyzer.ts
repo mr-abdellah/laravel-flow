@@ -104,7 +104,7 @@ const parseMigration = (content: string): TableSchema[] => {
     // Parse Explicit Foreign Keys
     const fkRegex =
       /\$table->foreign\(['"](\w+)['"]\)->references\(['"](\w+)['"]\)->on\(['"](\w+)['"]\)/g;
-    let fkMatch;
+    let fkMatch: RegExpExecArray | null;
     while ((fkMatch = fkRegex.exec(body)) !== null) {
       foreignKeys.push({
         column: fkMatch[1],
@@ -112,7 +112,7 @@ const parseMigration = (content: string): TableSchema[] => {
         onTable: fkMatch[3],
       });
       // Mark column as FK if parsed earlier
-      const col = columns.find((c) => c.name === fkMatch[1]);
+      const col = columns.find((c) => c.name === fkMatch![1]);
       if (col) col.isFk = true;
     }
 

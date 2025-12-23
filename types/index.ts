@@ -18,4 +18,5 @@ export interface Model {
   class: string;
   table: string; // inferred or explicit
   relations: { method: string; type: string; target: string }[];
+  filePath: string;
 }
