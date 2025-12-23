@@ -143,6 +143,12 @@ export const Sidebar = ({
                 <DropdownMenuItem onClick={() => onExport("django")}>
                   <FileCode className="mr-2 h-4 w-4" /> Django Models
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onExport("ts_interfaces")}>
+                  <FileCode className="mr-2 h-4 w-4" /> TypeScript Interfaces
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onExport("laravel_models")}>
+                  <FolderOpen className="mr-2 h-4 w-4" /> Laravel Models
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 

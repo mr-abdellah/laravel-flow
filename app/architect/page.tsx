@@ -14,7 +14,12 @@ import { Sidebar } from "@/components/Sidebar";
 import EntityNode from "@/components/EntityNode";
 import { parseProjectData } from "@/lib/parsers";
 import { getLayoutedElements } from "@/lib/layout";
-import { generateSQL, generateLaravelMigration } from "@/lib/generators";
+import {
+  generateSQL,
+  generateLaravelMigration,
+  generateTypeScriptInterfaces,
+  generateLaravelModel,
+} from "@/lib/generators";
 
 import { useUser, useUpdateApiKey } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
@@ -77,6 +82,17 @@ const pluralize = (str: string) => {
   }
   return str + "s";
 };
+
+const singularize = (str: string) => {
+  if (str.endsWith("ies")) return str.slice(0, -3) + "y";
+  if (str.endsWith("es") && /(s|sh|ch|x|z)es$/.test(str))
+    return str.slice(0, -2);
+  if (str.endsWith("s")) return str.slice(0, -1);
+  return str;
+};
+
+const toPascalCase = (str: string) =>
+  str.replace(/(^\w|_\w)/g, (m) => m.replace("_", "").toUpperCase());
 
 export default function ArchitectPage() {
   // --- Auth & Router ---
@@ -336,7 +352,46 @@ export default function ArchitectPage() {
           )
         )
         .join("\n\n// -----------------------------------------\n\n");
-      filename = "migrations.php.txt";
+      filename = "migrations.php";
+    } else if (format === "ts_interfaces") {
+      content = generateTypeScriptInterfaces(tables);
+      filename = "types.ts";
+    } else if (format === "laravel_models") {
+      content = tables
+        .map((t: any) => {
+          const tableName = t.name;
+          const modelName = toPascalCase(singularize(tableName));
+
+          const relevantEdges = edges.filter((e) => e.source === tableName);
+
+          const relations = relevantEdges.map((e) => {
+            const targetTable = e.target;
+            const relationType = (e.label as string) || "hasMany";
+
+            let methodName = targetTable;
+            if (relationType === "belongsTo" || relationType === "hasOne") {
+              methodName = singularize(targetTable);
+            }
+
+            const toModel = toPascalCase(singularize(targetTable));
+
+            return {
+              fromModel: modelName,
+              type: relationType,
+              toModel: toModel,
+              methodName: methodName,
+            };
+          });
+
+          return generateLaravelModel(
+            modelName,
+            tableName,
+            relations,
+            t.columns
+          );
+        })
+        .join("\n\n// -----------------------------------------\n\n");
+      filename = "models.php";
     }
 
     const blob = new Blob([content], { type: "text/plain" });

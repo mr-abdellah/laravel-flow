@@ -90,6 +90,27 @@ const mapToDjangoField = (laravelType: string): string => {
   return map[laravelType] || "models.CharField(max_length=255)";
 };
 
+const mapToTsType = (laravelType: string): string => {
+  const map: Record<string, string> = {
+    string: "string",
+    integer: "number",
+    bigInteger: "number",
+    bigIncrements: "number",
+    text: "string",
+    boolean: "boolean",
+    timestamp: "string",
+    datetime: "string",
+    date: "string",
+    json: "any",
+    decimal: "number",
+    float: "number",
+    uuid: "string",
+    foreignId: "number",
+    id: "number",
+  };
+  return map[laravelType] || "any";
+};
+
 // --- Generators ---
 
 export const generateLaravelMigration = (
@@ -155,7 +176,8 @@ ${columnsCode}
 export const generateLaravelModel = (
   modelName: string,
   tableName: string,
-  relations: AISchemaRelation[]
+  relations: AISchemaRelation[],
+  columns: { name: string }[] = []
 ): string => {
   const relationMethods = relations
     .map((rel) => {
@@ -165,6 +187,12 @@ export const generateLaravelModel = (
     }`;
     })
     .join("\n\n");
+
+  const fillableColumns = columns
+    .map((c) => c.name)
+    .filter((name) => !["id", "created_at", "updated_at"].includes(name));
+
+  const fillableString = fillableColumns.map((c) => `'${c}'`).join(", ");
 
   return `<?php
 
@@ -177,9 +205,7 @@ class ${modelName} extends Model
 {
     use HasFactory;
 
-    protected $table = '${tableName}';
-    
-    protected $guarded = [];
+    protected $fillable = [${fillableString}];
 
 ${relationMethods}
 }
@@ -318,6 +344,38 @@ export const generateDjangoModels = (tables: Table[]): string => {
     class Meta:
         db_table = '${table.name}'
 \n`;
+  });
+
+  return output;
+};
+
+export const generateTypeScriptInterfaces = (tables: Table[]): string => {
+  let output = "";
+
+  tables.forEach((table) => {
+    // Basic singularization: remove 's' at the end if present
+    let interfaceName = toPascalCase(table.name);
+    if (interfaceName.endsWith("s")) {
+      interfaceName = interfaceName.slice(0, -1);
+    }
+
+    output += `export interface ${interfaceName} {\n`;
+
+    table.columns.forEach((col) => {
+      if (col.name === "created_at" || col.name === "updated_at") return;
+      let type = mapToTsType(col.type);
+      let name = col.name;
+      if (col.nullable) {
+        name += "?";
+      }
+      output += `  ${name}: ${type};\n`;
+    });
+
+    // Timestamps
+    output += `  created_at?: string;\n`;
+    output += `  updated_at?: string;\n`;
+
+    output += `}\n\n`;
   });
 
   return output;
