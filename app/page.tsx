@@ -91,11 +91,17 @@ export default function ArchitectPage() {
           .forEach((col, index) => {
             const target = inferTargetTable(col.name, allTableNames);
             if (target && target !== tName) {
+              // Find target PK
+              const targetTable = tableStates[target];
+              const targetPk = targetTable?.columns.find((c) => c.isPk);
+
               tempEdges.push({
                 // id: `e-${tName}-${target}-${col.name}`,
                 id: generateEdgeId(tName, target, col.name, index),
                 source: tName,
                 target: target,
+                sourceHandle: `source-${col.name}`,
+                targetHandle: targetPk ? `target-${targetPk.name}` : undefined,
                 type: "smoothstep",
                 label: col.name,
                 labelStyle: {

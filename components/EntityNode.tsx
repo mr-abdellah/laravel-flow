@@ -16,10 +16,13 @@ const EntityNode = ({ data, selected }: NodeProps) => {
           : "hover:border-primary/50"
       )}
     >
-      <Handle type="target" position={Position.Left} className="opacity-0" />
-
       {/* Header */}
-      <div className="flex items-center gap-3 p-3 border-b border-border bg-muted/30">
+      <div className="relative flex items-center gap-3 p-3 border-b border-border bg-muted/30">
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="w-2 h-2 !bg-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity"
+        />
         <div className="p-1.5 bg-background rounded-md border border-border">
           {model ? (
             <Box size={14} className="text-primary" />
@@ -35,6 +38,11 @@ const EntityNode = ({ data, selected }: NodeProps) => {
             {table?.name || "no table"}
           </span>
         </div>
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="w-2 h-2 !bg-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity"
+        />
       </div>
 
       {/* Columns */}
@@ -42,8 +50,14 @@ const EntityNode = ({ data, selected }: NodeProps) => {
         {table?.columns.map((col: any, i: number) => (
           <div
             key={`${col.name}-${i}`}
-            className="flex items-center justify-between px-2 py-1.5 rounded-sm hover:bg-muted group/row"
+            className="relative flex items-center justify-between px-2 py-1.5 rounded-sm hover:bg-muted group/row"
           >
+            <Handle
+              type="target"
+              position={Position.Left}
+              id={`target-${col.name}`}
+              className="w-2 h-2 !bg-muted-foreground/30 opacity-0 group-hover/row:opacity-100 transition-opacity"
+            />
             <div className="flex items-center gap-2">
               {col.isPk ? (
                 <Key size={10} className="text-yellow-500 fill-yellow-500/20" />
@@ -68,11 +82,15 @@ const EntityNode = ({ data, selected }: NodeProps) => {
             <span className="text-[9px] font-mono text-muted-foreground/60 uppercase group-hover/row:text-muted-foreground">
               {col.type}
             </span>
+            <Handle
+              type="source"
+              position={Position.Right}
+              id={`source-${col.name}`}
+              className="w-2 h-2 !bg-muted-foreground/30 opacity-0 group-hover/row:opacity-100 transition-opacity"
+            />
           </div>
         ))}
       </div>
-
-      <Handle type="source" position={Position.Right} className="opacity-0" />
     </div>
   );
 };

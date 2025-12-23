@@ -1,6 +1,15 @@
 import { Column, Table, Model } from "@/types";
 
-const pluralize = (str: string) => (str.endsWith("s") ? str : str + "s");
+const pluralize = (str: string) => {
+  if (str.endsWith("s")) return str;
+  if (str.endsWith("y") && !/[aeiou]y$/.test(str)) {
+    return str.slice(0, -1) + "ies";
+  }
+  if (/(s|sh|ch|x|z)$/.test(str)) {
+    return str + "es";
+  }
+  return str + "s";
+};
 
 export const parseProjectData = (migrationFiles: any[], modelFiles: any[]) => {
   const tableStates: Record<string, Table> = {};
