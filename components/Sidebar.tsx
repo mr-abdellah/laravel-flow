@@ -1,49 +1,35 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Loader2,
-  FolderOpen,
-  Download,
-  Moon,
-  Sun,
-  Database,
-  Code2,
-} from "lucide-react";
-import { useTheme } from "next-themes";
+import { FolderOpen, Download, Database, Layers } from "lucide-react";
+import { ThemeToggle } from "./ui/theme-toggle";
 
 interface SidebarProps {
   loading: boolean;
-  stats: { migrations: number; models: number };
+  stats?: { migrations: number; models: number }; // Made optional
   onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onExport: () => void;
-  filesList: any[]; // For a file browser view if needed
 }
 
 export const Sidebar = ({
   loading,
-  stats,
+  stats = { migrations: 0, models: 0 }, // Default value prevents crash
   onFileSelect,
   onExport,
 }: SidebarProps) => {
-  const { setTheme, theme } = useTheme();
-
   return (
-    <div className="w-[300px] bg-white dark:bg-slate-950 border-r dark:border-slate-800 flex flex-col h-full shadow-xl z-20">
-      <div className="p-4 border-b dark:border-slate-800">
-        <h1 className="font-bold text-xl text-slate-800 dark:text-white flex items-center gap-2">
-          <Database className="text-indigo-600" />
+    <div className="w-[280px] bg-card border-r border-border flex flex-col h-full shadow-sm z-20">
+      <div className="p-6 border-b border-border">
+        <h1 className="font-bold text-lg text-foreground flex items-center gap-2">
+          <div className="p-1.5 bg-primary rounded-md">
+            <Layers size={18} className="text-primary-foreground" />
+          </div>
           LaraGraph
         </h1>
-        <p className="text-xs text-slate-500 mt-1">
-          Static Architecture Visualizer
-        </p>
       </div>
 
-      <ScrollArea className="flex-1 p-4 space-y-6">
-        {/* Actions */}
-        <div className="space-y-3">
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-4">
           <div className="relative">
             <input
               type="file"
@@ -56,71 +42,45 @@ export const Sidebar = ({
             />
             <Button
               variant="outline"
-              className="w-full justify-start"
+              className="w-full justify-start h-11"
               disabled={loading}
             >
-              {loading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <FolderOpen className="mr-2 h-4 w-4" />
-              )}
-              {loading ? "Scanning..." : "Open Project Root"}
+              <FolderOpen className="mr-2 h-4 w-4 text-primary" />
+              {loading ? "Processing..." : "Import Project"}
             </Button>
           </div>
 
           <Button
-            className="w-full justify-start"
+            className="w-full justify-start h-11"
             variant="secondary"
             onClick={onExport}
-            disabled={stats.models === 0}
+            disabled={stats.models === 0 && stats.migrations === 0}
           >
-            <Download className="mr-2 h-4 w-4" /> Export Edited Code
+            <Download className="mr-2 h-4 w-4" /> Export Data
           </Button>
-        </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-2 mt-6">
-          <div className="bg-slate-100 dark:bg-slate-900 p-3 rounded-lg text-center">
-            <div className="text-2xl font-bold text-indigo-600">
-              {stats.migrations}
+          <div className="pt-4 space-y-2">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
+              Statistics
+            </p>
+            <div className="grid grid-cols-1 gap-2">
+              <div className="bg-muted/50 p-3 rounded-lg border border-border">
+                <div className="text-xs text-muted-foreground">Migrations</div>
+                <div className="text-xl font-semibold text-foreground">
+                  {stats.migrations}
+                </div>
+              </div>
+              <div className="bg-muted/50 p-3 rounded-lg border border-border">
+                <div className="text-xs text-muted-foreground">Models</div>
+                <div className="text-xl font-semibold text-foreground">
+                  {stats.models}
+                </div>
+              </div>
             </div>
-            <div className="text-[10px] uppercase text-slate-500 font-bold">
-              Migrations
-            </div>
-          </div>
-          <div className="bg-slate-100 dark:bg-slate-900 p-3 rounded-lg text-center">
-            <div className="text-2xl font-bold text-pink-600">
-              {stats.models}
-            </div>
-            <div className="text-[10px] uppercase text-slate-500 font-bold">
-              Models
-            </div>
-          </div>
-        </div>
-
-        {/* Theme Toggle */}
-        <div className="mt-6 pt-6 border-t dark:border-slate-800">
-          <label className="text-xs font-bold text-slate-500 uppercase block mb-2">
-            Appearance
-          </label>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant={theme === "light" ? "default" : "outline"}
-              onClick={() => setTheme("light")}
-            >
-              <Sun className="h-4 w-4 mr-1" /> Light
-            </Button>
-            <Button
-              size="sm"
-              variant={theme === "dark" ? "default" : "outline"}
-              onClick={() => setTheme("dark")}
-            >
-              <Moon className="h-4 w-4 mr-1" /> Dark
-            </Button>
           </div>
         </div>
       </ScrollArea>
+      {/* <ThemeToggle /> */}
     </div>
   );
 };
