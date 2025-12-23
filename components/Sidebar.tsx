@@ -1,8 +1,8 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FolderOpen, Download, Database, Layers } from "lucide-react";
-import { ThemeToggle } from "./ui/theme-toggle";
+import { FolderOpen, Download, Layers } from "lucide-react";
+import { ToggleTheme } from "./ui/theme-toggle";
 
 interface SidebarProps {
   loading: boolean;
@@ -80,7 +80,7 @@ export const Sidebar = ({
           </div>
         </div>
       </ScrollArea>
-      {/* <ThemeToggle /> */}
+      <ToggleTheme />
     </div>
   );
 };

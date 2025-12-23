@@ -180,10 +180,9 @@ export default function ArchitectPage() {
           nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
-          fitView
           className="bg-muted/10"
         >
-          <Background color="var(--color-border)" gap={24} />
+          <Background color="var(--color-bg)" gap={24} />
           <Controls className="bg-background border-border fill-foreground" />
           <MiniMap
             className="bg-background border-border"
