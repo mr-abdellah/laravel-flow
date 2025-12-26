@@ -2,7 +2,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 
 const api = axios.create({
-  baseURL: "http://localhost:8000/api", // Laravel Sail exposed on port 8000
+  baseURL: "https://api.db-flow.mr-abdellah.com/api", // Laravel Sail exposed on port 8000
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",

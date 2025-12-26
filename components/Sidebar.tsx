@@ -9,7 +9,6 @@ import {
   Terminal,
   Search,
   Table,
-  Wand2,
   Database,
   Code2,
   FileCode,
@@ -116,120 +115,119 @@ export const Sidebar = ({
         </div>
       </div>
 
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-6">
-          {/* Actions */}
-          <div className="grid grid-cols-2 gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  className="w-full justify-start h-9 px-2 text-xs"
-                  variant="secondary"
-                  disabled={stats.models === 0 && stats.migrations === 0}
-                >
-                  <Download className="mr-2 h-3.5 w-3.5" /> Export
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuItem onClick={() => onExport("laravel")}>
-                  <FolderOpen className="mr-2 h-4 w-4" /> Laravel Project
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onExport("sql")}>
-                  <Database className="mr-2 h-4 w-4" /> SQL (MySQL)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onExport("prisma")}>
-                  <Code2 className="mr-2 h-4 w-4" /> Prisma Schema
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onExport("django")}>
-                  <FileCode className="mr-2 h-4 w-4" /> Django Models
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onExport("ts_interfaces")}>
-                  <FileCode className="mr-2 h-4 w-4" /> TypeScript Interfaces
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onExport("laravel_models")}>
-                  <FolderOpen className="mr-2 h-4 w-4" /> Laravel Models
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+      <div className="flex-1 p-4 flex flex-col gap-6 overflow-hidden">
+        <div className="grid grid-cols-2 gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                className="w-full justify-start h-9 px-2 text-xs"
+                variant="secondary"
+                disabled={stats.models === 0 && stats.migrations === 0}
+              >
+                <Download className="mr-2 h-3.5 w-3.5" /> Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem onClick={() => onExport("laravel")}>
+                <FolderOpen className="mr-2 h-4 w-4" /> Laravel Project
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onExport("sql")}>
+                <Database className="mr-2 h-4 w-4" /> SQL (MySQL)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onExport("prisma")}>
+                <Code2 className="mr-2 h-4 w-4" /> Prisma Schema
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onExport("django")}>
+                <FileCode className="mr-2 h-4 w-4" /> Django Models
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onExport("ts_interfaces")}>
+                <FileCode className="mr-2 h-4 w-4" /> TypeScript Interfaces
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onExport("laravel_models")}>
+                <FolderOpen className="mr-2 h-4 w-4" /> Laravel Models
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-            <Button
-              className="w-full justify-start h-9 px-2 text-xs"
-              variant="secondary"
-              onClick={onOpenCLI}
-              disabled={stats.models === 0 && stats.migrations === 0}
-            >
-              <Terminal className="mr-2 h-3.5 w-3.5" /> CLI
-            </Button>
-          </div>
+          <Button
+            className="w-full justify-start h-9 px-2 text-xs"
+            variant="secondary"
+            onClick={onOpenCLI}
+            disabled={stats.models === 0 && stats.migrations === 0}
+          >
+            <Terminal className="mr-2 h-3.5 w-3.5" /> CLI
+          </Button>
+        </div>
 
-          {/* Search & List */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
-                Database Tables
-              </p>
-              <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
-                {nodes.length}
-              </span>
-            </div>
-
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Search tables..."
-                className="h-8 pl-8 text-xs bg-muted/30"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-1">
-              {filteredNodes.length === 0 ? (
-                <div className="text-center py-4 text-xs text-muted-foreground">
-                  {nodes.length === 0 ? "No tables found" : "No matches"}
-                </div>
-              ) : (
-                filteredNodes.map((node) => (
-                  <Button
-                    key={node.id}
-                    variant="ghost"
-                    className="w-full justify-start h-8 px-2 text-sm font-normal hover:bg-muted/50"
-                    onClick={() => onNodeSelect?.(node.id)}
-                  >
-                    <Table className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="truncate">{node.data?.table?.name}</span>
-                  </Button>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="space-y-2 pt-2 border-t border-border">
+        <div className="flex-1 flex flex-col space-y-3 overflow-hidden">
+          <div className="flex items-center justify-between">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
-              Project Stats
+              Database Tables
             </p>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-muted/30 p-2 rounded-md border border-border/50">
-                <div className="text-[10px] text-muted-foreground uppercase">
-                  Migrations
-                </div>
-                <div className="text-lg font-semibold text-foreground leading-tight">
-                  {stats.migrations}
-                </div>
+            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+              {nodes.length}
+            </span>
+          </div>
+
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Search tables..."
+              className="h-8 pl-8 text-xs bg-muted/30"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-full pr-3">
+              <div className="space-y-1">
+                {filteredNodes.length === 0 ? (
+                  <div className="text-center py-4 text-xs text-muted-foreground">
+                    {nodes.length === 0 ? "No tables found" : "No matches"}
+                  </div>
+                ) : (
+                  filteredNodes.map((node) => (
+                    <Button
+                      key={node.id}
+                      variant="ghost"
+                      className="w-full justify-start h-8 px-2 text-sm font-normal hover:bg-muted/50"
+                      onClick={() => onNodeSelect?.(node.id)}
+                    >
+                      <Table className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="truncate">{node.data?.table?.name}</span>
+                    </Button>
+                  ))
+                )}
               </div>
-              <div className="bg-muted/30 p-2 rounded-md border border-border/50">
-                <div className="text-[10px] text-muted-foreground uppercase">
-                  Models
-                </div>
-                <div className="text-lg font-semibold text-foreground leading-tight">
-                  {stats.models}
-                </div>
+            </ScrollArea>
+          </div>
+        </div>
+
+        <div className="space-y-2 pt-2 border-t border-border">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
+            Project Stats
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-muted/30 p-2 rounded-md border border-border/50">
+              <div className="text-[10px] text-muted-foreground uppercase">
+                Migrations
+              </div>
+              <div className="text-lg font-semibold text-foreground leading-tight">
+                {stats.migrations}
+              </div>
+            </div>
+            <div className="bg-muted/30 p-2 rounded-md border border-border/50">
+              <div className="text-[10px] text-muted-foreground uppercase">
+                Models
+              </div>
+              <div className="text-lg font-semibold text-foreground leading-tight">
+                {stats.models}
               </div>
             </div>
           </div>
         </div>
-      </ScrollArea>
+      </div>
       <div className="p-4 border-t border-border">
         <ToggleTheme />
       </div>
